@@ -1,9 +1,9 @@
 import { shopifyFetchServer } from '@/lib/shopify-server';
 import { FEATURED_COLLECTIONS_QUERY } from '@/lib/queries';
 import { ShopifyCollection } from '@/lib/types';
+import { MOCK_COLLECTIONS } from '@/lib/mock-data';
 import ProductSlider from '@/components/product/ProductSlider';
 import HeroBanner from '@/components/home/HeroBanner';
-import NewsletterSection from '@/components/home/NewsletterSection';
 import TestimonialSection from '@/components/home/TestimonialSection';
 import InstagramReelsSection from '@/components/home/InstagramReelsSection';
 import CollectionSlider from '@/components/collection/CollectionSlider';
@@ -11,27 +11,38 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-async function getFeaturedCollections() {
+async function getFeaturedCollections(): Promise<ShopifyCollection[]> {
   try {
     const response = await shopifyFetchServer({
       query: FEATURED_COLLECTIONS_QUERY,
       variables: { first: 7 },
     });
-    return response.data?.collections?.edges || [];
+    const edges = response.data?.collections?.edges || [];
+    if (edges.length === 0) return MOCK_COLLECTIONS;
+    return edges.map((edge: any) => edge.node);
   } catch (error) {
-    console.error('Error fetching featured collections:', error);
-    return [];
+    console.error('Error fetching featured collections (using mock data):', error);
+    return MOCK_COLLECTIONS;
   }
 }
 
 export default async function HomePage() {
-  const collectionsData = await getFeaturedCollections();
-  const collections: ShopifyCollection[] = collectionsData.map((edge: any) => edge.node);
+  const collections = await getFeaturedCollections();
+  const isMock = collections.length > 0 && collections[0].id.startsWith('mock-');
 
   return (
     <div className="min-h-screen">
       {/* Hero Banner */}
       <HeroBanner />
+
+      {/* Mock data notice */}
+      {isMock && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          <div className="text-center text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            ⚠️ Shopify store is unavailable — showing preview data
+          </div>
+        </div>
+      )}
 
       {/* Featured Collections */}
       <section className="max-w-7xl mx-auto px-4 sm:px-4 lg:px-8 py-16">
